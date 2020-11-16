@@ -1,1 +1,1 @@
-# comprobo_simulated_sign_recognitio
+# CompRobo Final Project
