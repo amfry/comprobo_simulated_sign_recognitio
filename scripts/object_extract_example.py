@@ -1,13 +1,39 @@
 import cv2
+import numpy as np
+
 cap = cv2.VideoCapture(0) #primary webcam
 while True:
-    ret, img = cap.read()
+    _, frame = cap.read()
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    canny = cv2.Canny(blur, 10, 70)
-    ret, mask = cv2.threshold(canny, 70, 255, cv2.THRESH_BINARY)
-    cv2.imshow('Video feed', mask)
+    blurred_frame = cv2.GaussianBlur(frame, (5, 5), 0)
+    gray = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
+    edged = cv2.Canny(gray, 30, 200)
+
+    contours, hierarchy = cv2.findContours(edged,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    # for c in contours:
+    #     rect = cv2.minAreaRect(cnt)
+    #     box = cv2.boxPoints(rect)
+    #     box = np.int0(box)
+    #     im = cv2.drawContours(im,[box],0,(0,0,255),2)
+    #     # x,y,w,h = cv2.boundingRect(c)
+    #     # img = cv2.rectangle(edged,(x,y),(x+w,y+h),(0,255,0),2)
+    #     # cv2.imshow('Canny Edges After Contouring', img)
+
+    for c in contours:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.04 * peri, True)
+        if len(approx) == 3:
+            x,y,w,h = cv2.boundingRect(c)
+            cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),3)
+
+    # Display the resulting frame
+    cv2.imshow('frame',frame)
+
+    #cv2.imshow('Canny Edges After Contouring', edged)
+    #cv2.imshow("Frame",frame)
+
+
 
     if cv2.waitKey(1) & 0xFF == ord('q'): # hit "q to kill window"
         break
@@ -15,4 +41,6 @@ cap.release()
 cv2.destroyAllWindows()
 
 
-# https://pysource.com/2018/12/29/real-time-shape-detection-opencv-with-python-3/
+
+
+# shape approx https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
