@@ -2,3 +2,4 @@ theme: jekyll-theme-minimal
 title: Computational Robotics Fall 2020
 description: Sign Recongintion in Simulation
 baseurl: /sign_recognition
+markdown: GFM
