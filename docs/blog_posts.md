@@ -1,6 +1,6 @@
 ---
 layout: "default"
-title: blog_post_one 
+title: blog_posts 
 ---
 ## Project Update (xx/xx/xxxx)
 ## Project Update (11/23/2020)
