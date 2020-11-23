@@ -1,7 +1,12 @@
 ---
 layout: "default"
-title: blog_post_one
+title: blog_post_one 
 ---
-# Blog 1 (11/23/2020)
+## Project Update (xx/xx/xxxx)
+## Project Update (11/23/2020)
+In this first phase of the project, we took an asynchronous approach 
+### Abby
+
+### Vienna
 
 
