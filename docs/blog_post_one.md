@@ -1,6 +1,6 @@
 ---
 layout: "default"
-title: Tin Mining in Myanmar
+title: blog_post_one
 ---
 # Tin Mining in Myanmar
 Tin mining has recently grown very quickly in Myanmar. By 2014, Myanmar established itself as the third largest producer of tin after having increased production almost 5000 percent over 5 years. Myanmar has large deposits of tin associated with the granite belts in Southeast Asian that account for 50 percent of tin produced globally. Unfortunately, Myanmar tin mines are also primarily run by local militia and armies that are not government sponsored. This creates for a lot of dangerous conditions within mines, as well as harsh control and poor paying of miners.
