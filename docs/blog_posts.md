@@ -20,5 +20,14 @@ In addition to continuing to implement object localization algorithms, I would a
 
 
 ### Custom Gazebo World - Vienna
+I have been working on creating custom road sign models for our Gazebo world. The ultimate goal is to make a Gazebo world with at least two types of signs based on the Chinese Road Sign dataset that the Neato can recognize and respond to using the CNN image classifier from our Computer Vision project.
 
+I made a model in Solidworks based on a triangular yellow sign and exported it using the URDF exporter Solidworks add-on. I found that this only exports the mesh as .STL files without the image overlay, so I am currently trying to figure out how to use diffuse and spec images to add the image to the URDF model.
 
+Here is the model in Solidworks:
+
+Some ideas/concerns I've been considering:
+* How does image brightness impact the accuracy of the CNN? How does this impact the lighting I program into each model?
+* Can the Neato zone in on one sign in its field of vision to respond to? This is what Abbys working on with OpenCV, and for now we are optimistic that the Neato will be able to at least pick the closest (and therefore largest) sign in sight.
+
+![img](https://github.com/amfry/sign_recognition/blob/main/docs/images/yield_sign_sldprt.PNG)  
