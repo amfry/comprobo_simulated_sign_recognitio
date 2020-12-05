@@ -5,6 +5,7 @@ import numpy as np
 from cv_bridge import CvBridge
 import rospy
 from sensor_msgs.msg import Image
+from sign_classification import ConvNeuralNet
 
 class ImageExtractor():
     """ This ImageExtractor class converts a ROS video stream
@@ -60,16 +61,26 @@ class ImageExtractor():
         self.roi_image = img[self.y:self.y+self.h, self.x:self.x+self.w]
         cv2.imwrite("roi.png", self.roi_image)
 
+class SignRecognition():
+    def __init__(self):
+        self.img_extractor = ImageExtractor("/camera/image_raw")
+        self.cnn = ConvNeuralNet()
+        self.downloaded_data_path = '/home/vscheyer/Desktop/traffic_sign_dataset/archive/'
+        self.image_path = '/home/vscheyer/catkin_ws/src/computer_vision/scripts/images'
+        self.selected_categories = [range(1,57)]
+
+    # def classify_signs(self):
+
     def run(self):
         r = rospy.Rate(5)
         while not rospy.is_shutdown():
             if not self.cv_image is None:
-                self.sign_localizer(self.cv_image)
+                self.sign_localizer(self.img_extractor.cv_image)
                 #visualize video feedq
-                cv2.imshow('binary_window', self.cv_image)
-                cv2.imshow('Threshold', self.threshold_image)
-                cv2.imshow('Contours', self.contour_image)
-                self.save_image(self.cv_image)
+                cv2.imshow('binary_window', self.img_extractor.cv_image)
+                cv2.imshow('Threshold', self.img_extractor.threshold_image)
+                cv2.imshow('Contours', self.img_extractor.contour_image)
+                self.img_extractorsave_image(self.cv_image)
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
@@ -78,8 +89,8 @@ class ImageExtractor():
 
 
 if __name__ == '__main__':
-    node = ImageExtractor("/camera/image_raw")
-    node.run()
+    sign_recognition = SignRecognition()
+    sign_recognition.run()
 
     # TODO
     # Figure out sign detected --> sign identified pipeline
