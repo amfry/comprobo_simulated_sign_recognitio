@@ -21,67 +21,63 @@ class ImageExtractor():
         self.y = None
         self.w = None
         self.h = None
+        self.contour_image = None
+        self.threshold_image = None
+        self.roi_image = None
+        self.rectangle_image = None
 
         rospy.Subscriber(image_topic, Image, self.get_image)
-
-        cv2.namedWindow('binary_image')
 
     def get_image(self, msg):
         """ Process image messages from ROS and stash them in an attribute
             called cv_image for subsequent processing """
         self.cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        self.binary_image = cv2.inRange(self.cv_image, (128,128,128), (255,255,255))
 
     def sign_localizer(self, img):
         font = cv2.FONT_HERSHEY_COMPLEX
         color = (200, 0, 0)
 
-        img_contours = np.zeros(img.shape)
+        self.contour_image = np.zeros(img.shape)
         blurred_frame = cv2.GaussianBlur(img, (5, 5), 0)
         gray = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
-
-        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+        self.threshold_image = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                             cv2.THRESH_BINARY, 73, 5)
-
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        cv2.drawContours(img_contours, contours, -1, (0,255,0), 3)
+        contours, hierarchy = cv2.findContours(self.threshold_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(self.contour_image, contours, -1, (0,255,0), 3)
         areas = [cv2.contourArea(c) for c in contours]
         max_index = np.argmax(areas)
         cnt=contours[max_index]
         approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
         self.x,self.y,self.w,self.h = cv2.boundingRect(cnt)
-        rect = cv2.rectangle(img,(self.x,self.y),(self.x+self.w,self.y+self.h),(0,255,0),3)
-        #cv2.drawContours(img, len(approx), (0,55,55), 5)
-        cv2.putText(img, "Countour", (self.x,self.y), font, 1, color)
+        self.rectangle_image = cv2.rectangle(img,(self.x,self.y),(self.x+self.w,self.y+self.h),(0,255,0),3)
 
-        cv2.imshow("shapes", img_contours)
-        cv2.imshow("rect", rect)
-        cv2.imshow("Threshold", thresh)
+        rect = cv2.minAreaRect(cnt)
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        cv2.drawContours(img,[box],0,(20,40,255),2)
 
     def save_image(self, img):
-        roi = img[self.y:self.y+self.h, self.x:self.x+self.w]
-        print(type(roi))
-        cv2.imwrite("roi.png", roi)
+        self.roi_image = img[self.y:self.y+self.h, self.x:self.x+self.w]
+        cv2.imwrite("roi.png", self.roi_image)
 
     def run(self):
         r = rospy.Rate(5)
         while not rospy.is_shutdown():
             if not self.cv_image is None:
                 self.sign_localizer(self.cv_image)
-                print(self.cv_image.shape)
+                #visualize video feedq
                 cv2.imshow('binary_window', self.cv_image)
+                cv2.imshow('Threshold', self.threshold_image)
+                cv2.imshow('Contours', self.contour_image)
                 self.save_image(self.cv_image)
                 cv2.waitKey(5)
-
-            # start out not issuing any motor commands
             r.sleep()
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
                 break
         cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    print("Hello World")
     node = ImageExtractor("/camera/image_raw")
     node.run()
 
