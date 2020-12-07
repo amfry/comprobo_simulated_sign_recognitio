@@ -3,4 +3,6 @@ layout: "default"
 title: Implementation
 ---
 
-## Description
+## Project Goal
+## Design Decisions
+## Next Steps
