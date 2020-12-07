@@ -1,6 +1,6 @@
 ---
 layout: "default"
-title: implementation
+title: Implementation
 ---
 
 ## Description
