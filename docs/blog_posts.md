@@ -2,7 +2,17 @@
 layout: "default"
 title: blog_posts 
 ---
-## Project Update (xx/xx/xxxx)
+## Project Update (12/9/2020)
+Something something we are getting close to our MVP
+
+Here is a UML diagram of the software architecture 
+
+This is the data pipeline: ROS image topic --> OpenCV bridge --> threshold --> contour --> bouding box --> ROI --> shape detection CNN
+
+Here is our Gazebo world
+
+Here is the current thresholding status
+
 ## Project Update (11/23/2020)
 Phase 1 of our project consisted of two major parts, object localization from video and creating a custom gazebo world.  We identified that we hadn't interfaced these two topics before and that they were both critical parts of the project. In moving our sign recognition from static images to real-time, we needed to begin developing object localization from a video and understanding the challenge there. Creating a custom gazebo world is needed so that our simulated gazebo has road signs from our chosen data set that it can respond to. To tackle these challenges, we took an asynchronous approach and you can read more about the progress in phase 1 below.
 ### Object Localization - Abby
