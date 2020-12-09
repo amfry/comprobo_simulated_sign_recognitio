@@ -3,15 +3,18 @@ layout: "default"
 title: blog_posts 
 ---
 ## Project Update (12/9/2020)
-Something something we are getting close to our MVP
+In this phase of the project, we focused on improving our object localization and creating a data pipeline to validate that we can get to our MVP. In moving towards the end of the project, we have lalso ayed out our class diagram seen below.
+![Class Diagram](https://github.com/amfry/sign_recognition/blob/main/docs/images/class_diagram.png)
 
-Here is a UML diagram of the software architecture 
+With in the main class, Sign Recognition, there are instances of 3 other classes. First is RobotMotion which manages the ROS nodes and commands related to movement. Next, ImageExtractor, manages the subscription to the ROS camera/image_raw topic and uses CVbridge libary to be able to mannipulated the video feed.  ImageExtractor also uses thresholding, countours, and filtering to localize a region of the video feed where a sign is believed to be. When a region in belived to contain a sign, it is saved and then classified by the ConvNeuralNet class. This class uses an CNN trained in traffic sign data to classify the region of interest (ROI) that was found and saved by the ImageExtractor class.
 
-This is the data pipeline: ROS image topic --> OpenCV bridge --> threshold --> contour --> bouding box --> ROI --> shape detection CNN
+### Data Pipelie
+This is the data pipeline:
+ROS image topic --> OpenCV bridge --> Thresholding --> Contour --> Filtering --> Bouding Box -->   
+ROI --> shape detection CNN
 
-Here is our Gazebo world
-
-Here is the current thresholding status
+### Object Localization
+![MVP ](https://github.com/amfry/sign_recognition/blob/main/docs/images/mvp_sign_localizer.png)
 
 ## Project Update (11/23/2020)
 Phase 1 of our project consisted of two major parts, object localization from video and creating a custom gazebo world.  We identified that we hadn't interfaced these two topics before and that they were both critical parts of the project. In moving our sign recognition from static images to real-time, we needed to begin developing object localization from a video and understanding the challenge there. Creating a custom gazebo world is needed so that our simulated gazebo has road signs from our chosen data set that it can respond to. To tackle these challenges, we took an asynchronous approach and you can read more about the progress in phase 1 below.
