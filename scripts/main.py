@@ -32,6 +32,7 @@ class ImageExtractor():
         self.threshold_image = None
         self.roi_image = None
         self.rectangle_image = None
+        self.sign_flag = False
 
         rospy.Subscriber(image_topic, Image, self.get_image)
 
@@ -41,9 +42,8 @@ class ImageExtractor():
         self.cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
     def sign_localizer(self, img):
+        img = img[0:300, 0:700]  #only look at top portion of video feed
         font = cv2.FONT_HERSHEY_COMPLEX
-        color = (200, 0, 0)
-
         self.contour_image = np.zeros(img.shape)
         blurred_frame = cv2.GaussianBlur(img, (5, 5), 0)
         gray = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2GRAY)
@@ -51,17 +51,37 @@ class ImageExtractor():
                                             cv2.THRESH_BINARY, 73, 5)
         contours, hierarchy = cv2.findContours(self.threshold_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(self.contour_image, contours, -1, (0,255,0), 3)
-        areas = [cv2.contourArea(c) for c in contours]
-        max_index = np.argmax(areas)
-        cnt=contours[max_index]
-        approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
-        self.x,self.y,self.w,self.h = cv2.boundingRect(cnt)
-        self.rectangle_image = cv2.rectangle(img,(self.x,self.y),(self.x+self.w,self.y+self.h),(0,255,0),3)
+        # areas = [cv2.contourArea(c) for c in contours]  for pulling largest area contour
+        # max_index = np.argmax(areas)
+        # cnt=contours[max_index]
+        # approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
+        interest_area = []
+        interest_cnt = []
+        for c in contours:
+            approx = cv2.approxPolyDP(c, 0.01*cv2.arcLength(c, True), True)
+            x = approx.ravel()[0]
+            y = approx.ravel()[1]
+            area = cv2.contourArea(c)
+            if 20000 > area > 1000:
+                if len(approx) > 4:
+                    interest_area.append(area)
+                    interest_cnt.append(c)
 
-        rect = cv2.minAreaRect(cnt)
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
-        cv2.drawContours(img,[box],0,(20,40,255),2)
+        if len(interest_cnt) ==  0:  #no regions detected
+            self.x = None
+            self.y = None
+            self.w = None
+            self.h = None
+            self.rectangle_image = None
+            self.sign_flag = False
+            print("No Sign Detected")
+        else:
+            max_area_index = np.argmax(interest_area)
+            cnt = interest_cnt[max_area_index]
+            self.x,self.y,self.w,self.h = cv2.boundingRect(cnt)
+            self.rectangle_image = cv2.rectangle(img,(self.x,self.y),(self.x+self.w,self.y+self.h),(0,255,0),3)
+            self.sign_flag = True
+            print("Sign Detected!")
 
     def save_image(self, img):
         self.roi_image = img[self.y:self.y+self.h, self.x:self.x+self.w]
@@ -148,7 +168,7 @@ class SignRecognition():
         # epochs=self.epochs
         # )
 
-    def detect_image();
+    def detect_image():
         pass
 
     def run(self):
@@ -159,10 +179,12 @@ class SignRecognition():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
                 #visualize video feedq
-                cv2.imshow('binary_window', self.img_extractor.cv_image)
+                cv2.imshow('Video Feed', self.img_extractor.cv_image)
                 cv2.imshow('Threshold', self.img_extractor.threshold_image)
                 cv2.imshow('Contours', self.img_extractor.contour_image)
-                self.img_extractor.save_image(self.img_extractor.cv_image)
+                if self.img_extractor.sign_flag:
+                    self.img_extractor.save_image(self.img_extractor.rectangle_image)
+                    cv2.imshow('ROI', self.img_extractor.rectangle_image)
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
