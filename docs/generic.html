@@ -55,8 +55,10 @@
 							<!-- <span class="image main"><img src="images/pic13.jpg" alt="" /></span> -->
 
 							<p>In this phase of the project, we focused on improving our object localization and creating a data
-								pipeline to validate that we can get to our MVP. In moving towards the end of the project, we have l
-								also layed out our class diagram seen below. <br><br>
+								pipeline to validate that we can get to our MVP. In moving towards the end of the project, we have
+								also layed out our class diagram as shown below. <br><br>
+
+								<span class="image main"><img src="images/class_diagram.png" alt="" style="width:450px"/></span>
 
 							Within the main class, Sign Recognition, there are instances of 3 other classes. The first one is
 							RobotMotion which manages the ROS nodes and commands related to movement. Next, ImageExtractor, manages
@@ -83,6 +85,22 @@
 								are sorted based of their estimated areas. Within the filtered contours, the region with the
 								largest area is assumed to be the sign of intrests. This is becuase smaller areas are considered
 								to be signs in the distance or the text of the signs. Below is an example of our object localization. </p>
+
+								<span class="image main"><img src="images/mvp_sign_localizer.png" alt="" style="width:450px"/></span>
+
+							<h4>Gazebo Models</h4>
+							<p>Since the last blog post, we successfully put an image from the traffic sign dataset onto
+							the Gazebo stop sign model. It proved to be more difficult than we initially anticipated to make a new
+						  Gazebo model from scratch, so we ended up using Illustrator to edit the texture for the stop sign model
+						  so that it shows a Chinese stop sign. This is the sign we are using for our MVP.</p>
+
+							<span class="image main"><img src="images/stop_sign_model.png" alt="" style="width:150px"/></span>
+
+							<p>To go above and beyond our MVP, we could continue using the stop sign model by editing the texture with
+							the stop sign dataset speed limit signs. These dataset images are round, so it would be easy enough to
+							use this similarly shaped model. Additionally, the speed limit signs are appropriate for next steps since
+							we could make the Neato respond to speed limits.</p>
+							</thead>
 
 							<h2>Project Update 11/23/2020</h2>
 							<p>Phase 1 of our project consisted of two major parts, object localization from video and creating
@@ -122,7 +140,7 @@
 							 </ul>
 						 </p>
 
-						 <span class="image main"><img src="images/pic13.jpg" alt="" /></span>
+						 <span class="image main"><img src="images/openCV_practice.gif" alt="" style="width:650px"/></span>
 
 						 *Fig. 1: Here is an example of shape detection were only simplified rectangles with areas greater
 						 than 50 pixels are being identified. The value next to each bounding box is the approximated area of
@@ -149,6 +167,8 @@
 								Here is the model in SolidWorks:
 							</p>
 
+							<span class="image main"><img src="images/yield_sign_sldprt.PNG" alt="" style="width:128px"/></span>
+
 							<p>Some ideas/concerns I've been considering:
 								<ul>
 									<li>How does image brightness impact the accuracy of the CNN? How does this impact the
@@ -157,10 +177,7 @@
 										what Abbys working on with OpenCV, and for now we are optimistic that the Neato will
 										be able to at least pick the closest (and therefore largest) sign in sight.
 									</li>
-
-									img
-
-							</p>
+								</p>
 
 						</div>
 					</div>
