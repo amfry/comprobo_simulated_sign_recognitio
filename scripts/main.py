@@ -13,6 +13,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 import os
+from tensorflow.keras.models import model_from_json
 
 
 class ImageExtractor():
@@ -87,7 +88,7 @@ class ImageExtractor():
             print("Sign Detected!")
 
     def save_image(self, img):
-        self.roi_image = self.clean_image[self.y-30:self.y+self.h+30, self.x-30:self.x+self.w+30]
+        self.roi_image = self.rectangle_image[self.y-30:self.y+self.h+30, self.x-30:self.x+self.w+30]
         cv2.imwrite("roi.png", self.roi_image)
 
 class SignRecognition():
@@ -107,6 +108,7 @@ class SignRecognition():
         self.CHANNELS = 3
         self.val_ds = None
         self.batch_size = 32
+        self.loaded_model = None
 
     def load_data(self, image_dir, categories,
                   img_h, img_w, batch, grayscale):
@@ -165,11 +167,29 @@ class SignRecognition():
 
         self.model.summary()
 
-        self.history = self.model.fit(
-        self.train_ds,
-        validation_data=self.val_ds,
-        epochs=3
-        )
+        # self.history = self.model.fit(
+        # self.train_ds,
+        # validation_data=self.val_ds,
+        # epochs=20
+        # )
+
+    def load_cnn(self):
+        # load json and create model
+        json_file = open('model.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        self.loaded_model = model_from_json(loaded_model_json)
+        # load weights into new model
+        self.loaded_model.load_weights("model.h5")
+        print("Loaded model from disk")
+
+        self.loaded_model.compile(optimizer='adam',
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                metrics=['accuracy'])
+
+        score = self.loaded_model.evaluate(self.val_ds, verbose=0)
+        print("%s: %.2f%%" % (self.loaded_model.metrics_names[1], score[1]*100))
+
 
     def detect_image(self):
         self.current_dir = os.getcwd()
@@ -178,7 +198,7 @@ class SignRecognition():
         img = image.img_to_array(img)
         img = np.expand_dims(img, axis=0)
 
-        prediction = self.model.predict_classes(img)
+        prediction = self.loaded_model.predict_classes(img)
 
         print("MODEL PREDICTION:")
         print(prediction)
@@ -186,7 +206,8 @@ class SignRecognition():
     def run(self):
         r = rospy.Rate(5)
         self.load_data(self.image_path, self.selected_categories, 64, 64, 32, 0)
-        self.train_cnn()
+        # self.train_cnn()
+        self.load_cnn()
         while not rospy.is_shutdown():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
@@ -196,15 +217,17 @@ class SignRecognition():
                 cv2.imshow('Contours', self.img_extractor.contour_image)
                 if self.img_extractor.sign_flag:
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
-                    cv2.imshow('ROI', self.img_extractor.rectangle_image)
-                    cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
-                    cv2.imshow('Clean Image', self.img_extractor.clean_image)
-                    self.detect_image()
+        #             cv2.imshow('ROI', self.img_extractor.rectangle_image)
+        #             cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
+        #             cv2.imshow('Clean Image', self.img_extractor.clean_image)
+        #             self.detect_image()
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
                 break
         cv2.destroyAllWindows()
+
+
 
 
 if __name__ == '__main__':
