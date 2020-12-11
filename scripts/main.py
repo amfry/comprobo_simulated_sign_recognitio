@@ -11,6 +11,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.preprocessing import image
+import os
 
 
 class ImageExtractor():
@@ -40,6 +42,7 @@ class ImageExtractor():
         """ Process image messages from ROS and stash them in an attribute
             called cv_image for subsequent processing """
         self.cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        self.clean_image = self.cv_image
 
     def sign_localizer(self, img):
         img = img[0:300, 0:700]  #only look at top portion of video feed
@@ -79,12 +82,12 @@ class ImageExtractor():
             max_area_index = np.argmax(interest_area)
             cnt = interest_cnt[max_area_index]
             self.x,self.y,self.w,self.h = cv2.boundingRect(cnt)
-            self.rectangle_image = cv2.rectangle(img,(self.x,self.y),(self.x+self.w,self.y+self.h),(0,255,0),3)
+            self.rectangle_image = cv2.rectangle(img,(self.x-30,self.y-30),(self.x+self.w+30,self.y+self.h+30),(0,255,0),3)
             self.sign_flag = True
             print("Sign Detected!")
 
     def save_image(self, img):
-        self.roi_image = img[self.y:self.y+self.h, self.x:self.x+self.w]
+        self.roi_image = self.clean_image[self.y-30:self.y+self.h+30, self.x-30:self.x+self.w+30]
         cv2.imwrite("roi.png", self.roi_image)
 
 class SignRecognition():
@@ -147,13 +150,13 @@ class SignRecognition():
         layers.experimental.preprocessing.Rescaling(1./255, input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3)),
         layers.Conv2D(16, 3, padding='same', activation='relu'),
         layers.MaxPooling2D(),
-        # layers.Conv2D(32, 3, padding='same', activation='relu'),
-        # layers.MaxPooling2D(),
-        # layers.Conv2D(64, 3, padding='same', activation='relu'),
-        # layers.MaxPooling2D(),
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
         layers.Flatten(),
         layers.Dense(128, activation='relu'),
-        layers.Dense(self.N_CLASSES)
+        layers.Dense(57)
         ])
 
         self.model.compile(optimizer='adam',
@@ -162,14 +165,23 @@ class SignRecognition():
 
         self.model.summary()
 
-        # self.history = self.model.fit(
-        # self.train_ds,
-        # validation_data=self.val_ds,
-        # epochs=self.epochs
-        # )
+        self.history = self.model.fit(
+        self.train_ds,
+        validation_data=self.val_ds,
+        epochs=3
+        )
 
-    def detect_image():
-        pass
+    def detect_image(self):
+        self.current_dir = os.getcwd()
+        img = image.load_img(self.current_dir + "/roi.png", target_size=(64,64))
+        # cv2.imshow('ROI saved', img)
+        img = image.img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+
+        prediction = self.model.predict_classes(img)
+
+        print("MODEL PREDICTION:")
+        print(prediction)
 
     def run(self):
         r = rospy.Rate(5)
@@ -185,6 +197,9 @@ class SignRecognition():
                 if self.img_extractor.sign_flag:
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
                     cv2.imshow('ROI', self.img_extractor.rectangle_image)
+                    cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
+                    cv2.imshow('Clean Image', self.img_extractor.clean_image)
+                    self.detect_image()
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
@@ -193,7 +208,7 @@ class SignRecognition():
 
 
 if __name__ == '__main__':
-    sign_recognition = SignRecognition("/home/abbymfry/Desktop/chinese_traffic_signs/", "/home/abbymfry/catkin_ws/src/computer_vision/scripts/images")
+    sign_recognition = SignRecognition("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
     sign_recognition.run()
 
 
