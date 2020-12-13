@@ -97,6 +97,8 @@ class CreateCNN():
         epochs=20
         )
 
+        print(self.history.history['accuracy'])
+
         # serialize model to JSON
         model_json = self.model.to_json()
         with open("model.json", "w") as json_file:

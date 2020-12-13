@@ -88,7 +88,7 @@ class ImageExtractor():
             print("Sign Detected!")
 
     def save_image(self, img):
-        self.roi_image = self.rectangle_image[self.y-30:self.y+self.h+30, self.x-30:self.x+self.w+30]
+        self.roi_image = self.clean_image[self.y-25:self.y+self.h+25, self.x-25:self.x+self.w+25]
         cv2.imwrite("roi.png", self.roi_image)
 
 class SignRecognition():
@@ -193,7 +193,7 @@ class SignRecognition():
 
     def detect_image(self):
         self.current_dir = os.getcwd()
-        img = image.load_img(self.current_dir + "/roi.png", target_size=(64,64))
+        img = image.load_img(self.current_dir + "/003_1_0001_1_j.png", target_size=(64,64), color_mode='rgb')
         # cv2.imshow('ROI saved', img)
         img = image.img_to_array(img)
         img = np.expand_dims(img, axis=0)
@@ -217,10 +217,10 @@ class SignRecognition():
                 cv2.imshow('Contours', self.img_extractor.contour_image)
                 if self.img_extractor.sign_flag:
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
-        #             cv2.imshow('ROI', self.img_extractor.rectangle_image)
-        #             cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
-        #             cv2.imshow('Clean Image', self.img_extractor.clean_image)
-        #             self.detect_image()
+                    cv2.imshow('ROI', self.img_extractor.rectangle_image)
+                    cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
+                    cv2.imshow('Clean Image', self.img_extractor.clean_image)
+                    self.detect_image()
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
