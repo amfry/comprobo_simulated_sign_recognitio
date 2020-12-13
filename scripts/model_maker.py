@@ -108,6 +108,7 @@ class CreateCNN():
         print("Saved model to disk")
 
 if __name__ == '__main__':
-    model_creator = CreateCNN("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
+    #model_creator = CreateCNN("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
+    model_creator = CreateCNN("/home/abbymfry/Desktop/chinese_traffic_signs/", "/home/abbymfry/catkin_ws/src/computer_vision/scripts/images")
     model_creator.load_data(model_creator.image_path, model_creator.selected_categories, 64, 64, 32, 0)
     model_creator.train_cnn()

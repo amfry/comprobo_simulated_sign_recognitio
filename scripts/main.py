@@ -14,6 +14,11 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 import os
 from tensorflow.keras.models import model_from_json
+from std_msgs.msg import Int8MultiArray
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion, rotation_matrix, quaternion_from_matrix
+import time
+from geometry_msgs.msg import Twist, Vector3
 
 
 class ImageExtractor():
@@ -91,10 +96,34 @@ class ImageExtractor():
         self.roi_image = self.clean_image[self.y-25:self.y+self.h+25, self.x-25:self.x+self.w+25]
         cv2.imwrite("roi.png", self.roi_image)
 
+class RobotMotion():
+    def __init__(self):
+        #rospy.init_node('robo_motion')
+        self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        self.line_vel = 0.3
+        self.ang_vel = 0.55
+        self.expected_sign = 35
+        self.detected_sign = None
+
+    def starter_motion(self):
+        self.pub.publish(Twist(linear=Vector3(x=self.line_vel, y=0)))
+
+    def sign_response(self):
+        print("detected"+ str(self.detected_sign))
+        print("expected" + str(self.expected_sign))
+        if self.detected_sign == self.expected_sign:
+            time.sleep(5)
+            self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=0)))
+            time.sleep(5)
+            self.pub.publish(Twist(linear=Vector3(x=self.line_vel, y=0)))
+
+
+
 class SignRecognition():
     def __init__(self, downloaded_data_path, image_path):
         self.img_extractor = ImageExtractor("/camera/image_raw")
         self.cnn = ConvNeuralNet()
+        self.robo_motion = RobotMotion()
         self.downloaded_data_path = downloaded_data_path
         self.image_path = image_path
         self.selected_categories = [range(1,57)]
@@ -109,6 +138,7 @@ class SignRecognition():
         self.val_ds = None
         self.batch_size = 32
         self.loaded_model = None
+        self.prediction = None
 
     def load_data(self, image_dir, categories,
                   img_h, img_w, batch, grayscale):
@@ -193,21 +223,20 @@ class SignRecognition():
 
     def detect_image(self):
         self.current_dir = os.getcwd()
-        img = image.load_img(self.current_dir + "/003_1_0001_1_j.png", target_size=(64,64), color_mode='rgb')
+        img = image.load_img(self.current_dir + "/roi.png", target_size=(64,64), color_mode='rgb')
         # cv2.imshow('ROI saved', img)
         img = image.img_to_array(img)
         img = np.expand_dims(img, axis=0)
 
-        prediction = self.loaded_model.predict_classes(img)
-
-        print("MODEL PREDICTION:")
-        print(prediction)
+        self.prediction = self.loaded_model.predict_classes(img)[0]
 
     def run(self):
         r = rospy.Rate(5)
         self.load_data(self.image_path, self.selected_categories, 64, 64, 32, 0)
         # self.train_cnn()
         self.load_cnn()
+        if not rospy.is_shutdown():
+            self.robo_motion.starter_motion()
         while not rospy.is_shutdown():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
@@ -221,6 +250,10 @@ class SignRecognition():
                     cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
                     self.detect_image()
+                    self.robo_motion.detected_sign = self.prediction
+                    print("detected sign class:")
+                    print(self.robo_motion.detected_sign)
+                    self.robo_motion.sign_response()
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
@@ -231,7 +264,8 @@ class SignRecognition():
 
 
 if __name__ == '__main__':
-    sign_recognition = SignRecognition("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
+    ## sign_recognition = SignRecognition("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
+    sign_recognition = SignRecognition("/home/abbymfry/Desktop/chinese_traffic_signs/", "/home/abbymfry/catkin_ws/src/computer_vision/scripts/images")
     sign_recognition.run()
 
 
