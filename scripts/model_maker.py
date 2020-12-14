@@ -94,7 +94,7 @@ class CreateCNN():
         self.history = self.model.fit(
         self.train_ds,
         validation_data=self.val_ds,
-        epochs=20
+        epochs = self.epochs
         )
 
         print(self.history.history['accuracy'])

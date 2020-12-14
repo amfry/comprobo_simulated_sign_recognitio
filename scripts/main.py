@@ -100,9 +100,9 @@ class RobotMotion():
     def __init__(self):
         #rospy.init_node('robo_motion')
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-        self.line_vel = 0.3
-        self.ang_vel = 0.55
-        self.expected_sign = 35
+        self.line_vel = 0.15
+        self.ang_vel = 0.25
+        self.expected_sign = 52
         self.detected_sign = None
 
     def starter_motion(self):
@@ -139,6 +139,7 @@ class SignRecognition():
         self.batch_size = 32
         self.loaded_model = None
         self.prediction = None
+        self.class_names = None
 
     def load_data(self, image_dir, categories,
                   img_h, img_w, batch, grayscale):
@@ -168,7 +169,7 @@ class SignRecognition():
         image_size=(self.IMG_HEIGHT, self.IMG_WIDTH),
         batch_size=self.batch_size)
 
-        class_names = self.train_ds.class_names
+        self.class_names = self.train_ds.class_names
 
         AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -223,12 +224,18 @@ class SignRecognition():
 
     def detect_image(self):
         self.current_dir = os.getcwd()
-        img = image.load_img(self.current_dir + "/roi.png", target_size=(64,64), color_mode='rgb')
-        # cv2.imshow('ROI saved', img)
-        img = image.img_to_array(img)
-        img = np.expand_dims(img, axis=0)
+        img = keras.preprocessing.image.load_img(self.current_dir + "/roi.png", target_size=(64, 64))
+        img_array = keras.preprocessing.image.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0) # Create a batch
 
-        self.prediction = self.loaded_model.predict_classes(img)[0]
+        predictions = self.loaded_model.predict(img_array)
+        score = tf.nn.softmax(predictions[0])
+        self.prediction = self.class_names[np.argmax(score)]
+
+        print(
+        "This image most likely belongs to {} with a {:.2f} percent confidence."
+        .format(self.class_names[np.argmax(score)], 100 * np.max(score))
+        )
 
     def run(self):
         r = rospy.Rate(5)
@@ -241,13 +248,13 @@ class SignRecognition():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
                 #visualize video feedq
-                cv2.imshow('Video Feed', self.img_extractor.cv_image)
+                #cv2.imshow('Video Feed', self.img_extractor.cv_image)
                 cv2.imshow('Threshold', self.img_extractor.threshold_image)
                 cv2.imshow('Contours', self.img_extractor.contour_image)
                 if self.img_extractor.sign_flag:
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
-                    cv2.imshow('ROI', self.img_extractor.rectangle_image)
-                    cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
+                    #cv2.imshow('ROI', self.img_extractor.rectangle_image)
+                    #cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
                     self.detect_image()
                     self.robo_motion.detected_sign = self.prediction
