@@ -41,9 +41,8 @@ class ImageExtractor():
         self.roi_image = None
         self.rectangle_image = None
         self.sign_flag = False
-        self.sign_flag_temp = False
+        # self.sign_flag_temp = False
         self.sign_reached = False
-        self.new_sign = False
 
         rospy.Subscriber(image_topic, Image, self.get_image)
 
@@ -97,8 +96,8 @@ class ImageExtractor():
             self.sign_flag = True
             # print("Sign Detected!")
 
-        if (self.sign_flag_temp != self.sign_flag):
-            self.new_sign = True
+        # if (self.sign_flag_temp != self.sign_flag):
+        #     self.new_sign = True
 
     def save_image(self, img):
         self.roi_image = self.clean_image[self.y-25:self.y+self.h+25, self.x-25:self.x+self.w+25]
@@ -127,6 +126,10 @@ class RobotMotion():
         self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=0)))
         time.sleep(2)
 
+    def turn_right(self):
+        self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=-0.55)))
+        time.sleep(3)
+
 
 class SignRecognition():
     def __init__(self, downloaded_data_path, image_path):
@@ -147,8 +150,11 @@ class SignRecognition():
         self.val_ds = None
         self.batch_size = 32
         self.loaded_model = None
-        self.prediction = None
+        self.confidence = None
+        self.prediction = 0
+        self.prediction_temp = 1
         self.class_names = None
+        self.new_sign = False
 
     def load_data(self, image_dir, categories,
                   img_h, img_w, batch, grayscale):
@@ -237,14 +243,20 @@ class SignRecognition():
         img_array = keras.preprocessing.image.img_to_array(img)
         img_array = tf.expand_dims(img_array, 0) # Create a batch
 
+        self.prediction_temp = self.prediction
+
         predictions = self.loaded_model.predict(img_array)
         score = tf.nn.softmax(predictions[0])
         self.prediction = self.class_names[np.argmax(score)]
+        self.confidence = np.max(score)
 
-        # print(
-        # "This image most likely belongs to {} with a {:.2f} percent confidence."
-        # .format(self.class_names[np.argmax(score)], 100 * np.max(score))
-        # )
+        if (self.prediction_temp != self.prediction):
+            self.new_sign = True
+
+        print(
+        "Class {} with {:.2f}"
+        .format(self.class_names[np.argmax(score)], 100 * np.max(score))
+        )
 
     def run(self):
         r = rospy.Rate(5)
@@ -260,8 +272,9 @@ class SignRecognition():
                 #cv2.imshow('Video Feed', self.img_extractor.cv_image)
                 cv2.imshow('Threshold', self.img_extractor.threshold_image)
                 cv2.imshow('Contours', self.img_extractor.contour_image)
-                print("NEW SIGN:")
-                print(self.img_extractor.new_sign)
+                # print("NEW SIGN:")
+                # print(self.new_sign)
+                print(type(self.confidence))
                 if (self.img_extractor.sign_flag == True):
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
@@ -269,10 +282,13 @@ class SignRecognition():
                     self.robo_motion.detected_sign = self.prediction
                     # print("detected sign class:")
                     # print(self.robo_motion.detected_sign)
-                if ((self.img_extractor.sign_flag) and (self.img_extractor.y < 50) and (self.img_extractor.new_sign)):
+                if ((self.img_extractor.sign_flag) and (self.img_extractor.y < 50) and (self.new_sign) and (self.confidence > 0.98)):
                     # print("STOPPPPPPPPP")
+                    # if (self.prediction == 52):
                     self.robo_motion.stop()
-                    self.img_extractor.new_sign = False
+                    # if (self.prediction == 24):
+                        # self.robo_motion.turn_right()
+                    self.new_sign = False
 
                 self.robo_motion.starter_motion()
                 # else:
