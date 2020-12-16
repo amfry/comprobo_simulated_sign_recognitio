@@ -41,6 +41,9 @@ class ImageExtractor():
         self.roi_image = None
         self.rectangle_image = None
         self.sign_flag = False
+        self.sign_flag_temp = False
+        self.sign_reached = False
+        self.new_sign = False
 
         rospy.Subscriber(image_topic, Image, self.get_image)
 
@@ -76,6 +79,8 @@ class ImageExtractor():
                     interest_area.append(area)
                     interest_cnt.append(c)
 
+        self.sign_flag_temp = self.sign_flag
+
         if len(interest_cnt) ==  0:  #no regions detected
             self.x = None
             self.y = None
@@ -90,11 +95,21 @@ class ImageExtractor():
             self.x,self.y,self.w,self.h = cv2.boundingRect(cnt)
             self.rectangle_image = cv2.rectangle(img,(self.x-30,self.y-30),(self.x+self.w+30,self.y+self.h+30),(0,255,0),3)
             self.sign_flag = True
-            print("Sign Detected!")
+            # print("Sign Detected!")
+
+        if (self.sign_flag_temp != self.sign_flag):
+            self.new_sign = True
 
     def save_image(self, img):
         self.roi_image = self.clean_image[self.y-25:self.y+self.h+25, self.x-25:self.x+self.w+25]
-        cv2.imwrite("roi.png", self.roi_image)
+        # print("ROI Y:")
+        # print(self.y)
+        if (self.y < 50):
+            self.sign_reached == True
+        try:
+            cv2.imwrite("roi.png", self.roi_image)
+        except:
+            pass
 
 class RobotMotion():
     def __init__(self):
@@ -108,15 +123,9 @@ class RobotMotion():
     def starter_motion(self):
         self.pub.publish(Twist(linear=Vector3(x=self.line_vel, y=0)))
 
-    def sign_response(self):
-        print("detected"+ str(self.detected_sign))
-        print("expected" + str(self.expected_sign))
-        if self.detected_sign == self.expected_sign:
-            time.sleep(5)
-            self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=0)))
-            time.sleep(5)
-            self.pub.publish(Twist(linear=Vector3(x=self.line_vel, y=0)))
-
+    def stop(self):
+        self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=0)))
+        time.sleep(2)
 
 
 class SignRecognition():
@@ -219,7 +228,7 @@ class SignRecognition():
                 metrics=['accuracy'])
 
         score = self.loaded_model.evaluate(self.val_ds, verbose=0)
-        print("%s: %.2f%%" % (self.loaded_model.metrics_names[1], score[1]*100))
+        # print("%s: %.2f%%" % (self.loaded_model.metrics_names[1], score[1]*100))
 
 
     def detect_image(self):
@@ -232,18 +241,18 @@ class SignRecognition():
         score = tf.nn.softmax(predictions[0])
         self.prediction = self.class_names[np.argmax(score)]
 
-        print(
-        "This image most likely belongs to {} with a {:.2f} percent confidence."
-        .format(self.class_names[np.argmax(score)], 100 * np.max(score))
-        )
+        # print(
+        # "This image most likely belongs to {} with a {:.2f} percent confidence."
+        # .format(self.class_names[np.argmax(score)], 100 * np.max(score))
+        # )
 
     def run(self):
         r = rospy.Rate(5)
         self.load_data(self.image_path, self.selected_categories, 64, 64, 32, 0)
         # self.train_cnn()
         self.load_cnn()
-        if not rospy.is_shutdown():
-            self.robo_motion.starter_motion()
+        # if not rospy.is_shutdown():
+        #     self.robo_motion.starter_motion()
         while not rospy.is_shutdown():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
@@ -251,16 +260,23 @@ class SignRecognition():
                 #cv2.imshow('Video Feed', self.img_extractor.cv_image)
                 cv2.imshow('Threshold', self.img_extractor.threshold_image)
                 cv2.imshow('Contours', self.img_extractor.contour_image)
-                if self.img_extractor.sign_flag:
+                print("NEW SIGN:")
+                print(self.img_extractor.new_sign)
+                if (self.img_extractor.sign_flag == True):
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
-                    #cv2.imshow('ROI', self.img_extractor.rectangle_image)
-                    #cv2.imshow('ROI Image Save' , self.img_extractor.roi_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
                     self.detect_image()
                     self.robo_motion.detected_sign = self.prediction
-                    print("detected sign class:")
-                    print(self.robo_motion.detected_sign)
-                    self.robo_motion.sign_response()
+                    # print("detected sign class:")
+                    # print(self.robo_motion.detected_sign)
+                if ((self.img_extractor.sign_flag) and (self.img_extractor.y < 50) and (self.img_extractor.new_sign)):
+                    # print("STOPPPPPPPPP")
+                    self.robo_motion.stop()
+                    self.img_extractor.new_sign = False
+
+                self.robo_motion.starter_motion()
+                # else:
+                #     self.robo_motion.starter_motion()
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
@@ -272,7 +288,7 @@ class SignRecognition():
 
 if __name__ == '__main__':
     ## sign_recognition = SignRecognition("/home/vscheyer/Desktop/traffic_sign_dataset/", "/home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
-    sign_recognition = SignRecognition("/home/abbymfry/Desktop/chinese_traffic_signs/", "/home/abbymfry/catkin_ws/src/computer_vision/scripts/images")
+    sign_recognition = SignRecognition("//home/vscheyer/Desktop/traffic_sign_dataset/", "//home/vscheyer/catkin_ws/src/computer_vision/scripts/images")
     sign_recognition.run()
 
 
