@@ -253,10 +253,10 @@ class SignRecognition():
         if (self.prediction_temp != self.prediction):
             self.new_sign = True
 
-        print(
-        "Class {} with {:.2f}"
-        .format(self.class_names[np.argmax(score)], 100 * np.max(score))
-        )
+        # print(
+        # "Class {} with {:.2f}"
+        # .format(self.class_names[np.argmax(score)], 100 * np.max(score))
+        # )
 
     def run(self):
         r = rospy.Rate(5)
@@ -274,7 +274,7 @@ class SignRecognition():
                 cv2.imshow('Contours', self.img_extractor.contour_image)
                 # print("NEW SIGN:")
                 # print(self.new_sign)
-                print(type(self.confidence))
+                # print(self.prediction)
                 if (self.img_extractor.sign_flag == True):
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
@@ -284,10 +284,12 @@ class SignRecognition():
                     # print(self.robo_motion.detected_sign)
                 if ((self.img_extractor.sign_flag) and (self.img_extractor.y < 50) and (self.new_sign) and (self.confidence > 0.98)):
                     # print("STOPPPPPPPPP")
-                    # if (self.prediction == 52):
-                    self.robo_motion.stop()
-                    # if (self.prediction == 24):
-                        # self.robo_motion.turn_right()
+                    if (self.prediction == 'class_52'):
+                        print('STOP')
+                        self.robo_motion.stop()
+                    if (self.prediction == 'class_24'):
+                        print('TURN RIGHT')
+                        self.robo_motion.turn_right()
                     self.new_sign = False
 
                 self.robo_motion.starter_motion()
