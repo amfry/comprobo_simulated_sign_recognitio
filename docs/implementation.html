@@ -49,6 +49,39 @@
 					<div id="main">
 						<div class="inner">
 							<h1>Implementation</h1>
+								<h2>Description and Goals</h2>
+								For the final Computational Robotics Project, our team decided to built off of our computer vision project and implemnted simulated sign recogntion.
+								<ul>
+							  <li>Create a custom gazebo world containing road signs from the selected dataset/li>
+							  <li>Use the simulated neato camera feed to extract the potential signs </li>
+							  <li>Use a CNN to identify what type of road sign it is</li>
+								<li>Have the neato respond to the type of road sign with the appropriate behavior </li>
+								</ul>
+								<span class="image main"><img src="images/3_signs_in_a_row.gif" alt="" style="width:800px"/></span>
+								<h1>System Architecture</h1>
+									<span class="image main"><img src="images/sign_detection_diagram.png" alt="" style="width:700px"/></span>
+								<h2> Gazebo World</h2>
+								<h2> Image Extraction</h2>
+									<span class="image main"><img src="images/threshold_contours.gif" alt="" style="width:450px"/></span>
+								<h2> Sign Classifier</h2>
+								To classify the region of interest image found duing image extraction, we built off of a simple convolutional neural net that we built during the prior
+								<a href="https://github.com/vscheyer/computer_vision">computer vision project</a>.
+								<br>
+								<br>
+								Our classifier was trained on the publicly available portion of the Chinese Traffic Sign Recognition database [1]
+								<br>
+								<br>
+								[1] https://www.kaggle.com/dmitryyemelyanov/chinese-traffic-signs
+								The dataset is a converted version of publicly available Chinese Traffic Sign Recognition Database. This work is supported by National Nature Science Foundation of China(NSFC) Grant 61271306
+								Credits:
+								LinLin Huang,Prof.Ph.D
+								School of Electronic and Information Engingeering,
+								Beijing Jiaotong University,
+								Beijing 100044,China
+								Email: huangll@bjtu.edu.cn
+								All images originally collected by camera under nature scenes or from BAIDU Street View
+
+
 						</div>
 					</div>
 
