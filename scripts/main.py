@@ -130,6 +130,10 @@ class RobotMotion():
         self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=-0.55)))
         time.sleep(3)
 
+    def turn_left(self):
+        self.pub.publish(Twist(linear=Vector3(x=0, y=0), angular=Vector3(z=0.55)))
+        time.sleep(3)
+
 
 class SignRecognition():
     def __init__(self, downloaded_data_path, image_path):
@@ -213,12 +217,6 @@ class SignRecognition():
 
         self.model.summary()
 
-        # self.history = self.model.fit(
-        # self.train_ds,
-        # validation_data=self.val_ds,
-        # epochs=20
-        # )
-
     def load_cnn(self):
         # load json and create model
         json_file = open('model.json', 'r')
@@ -234,8 +232,6 @@ class SignRecognition():
                 metrics=['accuracy'])
 
         score = self.loaded_model.evaluate(self.val_ds, verbose=0)
-        # print("%s: %.2f%%" % (self.loaded_model.metrics_names[1], score[1]*100))
-
 
     def detect_image(self):
         self.current_dir = os.getcwd()
@@ -261,40 +257,31 @@ class SignRecognition():
     def run(self):
         r = rospy.Rate(5)
         self.load_data(self.image_path, self.selected_categories, 64, 64, 32, 0)
-        # self.train_cnn()
         self.load_cnn()
-        # if not rospy.is_shutdown():
-        #     self.robo_motion.starter_motion()
         while not rospy.is_shutdown():
             if not self.img_extractor.cv_image is None:
                 self.img_extractor.sign_localizer(self.img_extractor.cv_image)
-                #visualize video feedq
-                #cv2.imshow('Video Feed', self.img_extractor.cv_image)
                 cv2.imshow('Threshold', self.img_extractor.threshold_image)
                 cv2.imshow('Contours', self.img_extractor.contour_image)
-                # print("NEW SIGN:")
-                # print(self.new_sign)
-                # print(self.prediction)
                 if (self.img_extractor.sign_flag == True):
                     self.img_extractor.save_image(self.img_extractor.rectangle_image)
                     cv2.imshow('Clean Image', self.img_extractor.clean_image)
                     self.detect_image()
                     self.robo_motion.detected_sign = self.prediction
-                    # print("detected sign class:")
-                    # print(self.robo_motion.detected_sign)
                 if ((self.img_extractor.sign_flag) and (self.img_extractor.y < 50) and (self.new_sign) and (self.confidence > 0.98)):
-                    # print("STOPPPPPPPPP")
                     if (self.prediction == 'class_52'):
                         print('STOP')
                         self.robo_motion.stop()
                     if (self.prediction == 'class_24'):
                         print('TURN RIGHT')
                         self.robo_motion.turn_right()
+                    if (self.prediction == 'class_22'):
+                        print('TURN LEFT')
+                        self.robo_motion.turn_left()
                     self.new_sign = False
 
                 self.robo_motion.starter_motion()
-                # else:
-                #     self.robo_motion.starter_motion()
+                
                 cv2.waitKey(5)
             r.sleep()
             if cv2.waitKey(1) & 0xFF == ord('q'): #kill open CV windows
