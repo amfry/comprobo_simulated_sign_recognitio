@@ -50,51 +50,98 @@
 						<div class="inner">
 							<h1>Implementation</h1>
 								<h2>Description and Goals</h2>
-								For the final Computational Robotics Project, our team decided to built off of our computer vision project and implemnted simulated sign recogntion.
+								For the final Computational Robotics Project, our team decided to build off of our computer vision project
+								and we implemented a simulated sign recognition program. The following steps show a brief outline of what we did:<br><br>
 								<ul>
-							  <li>Create a custom gazebo world containing road signs from the selected dataset/li>
-							  <li>Use the simulated neato camera feed to extract the potential signs </li>
-							  <li>Use a CNN to identify what type of road sign it is</li>
-								<li>Have the neato respond to the type of road sign with the appropriate behavior </li>
+							  <li>Created a custom gazebo world containing road signs from the selected dataset</li>
+							  <li>Used the simulated neato camera feed to extract the potential signs </li>
+							  <li>Used a CNN to identify the type of road sign</li>
+								<li>Had the neato respond to the type of road sign with the appropriate behavior </li>
 								</ul>
+
+								As a result, the Neato can respond to 3 different types of signs: stop, right turn, and left turn. Any signs from the
+								dataset could be used, but we chose these ones in particular because there are clearly recognizable motions
+								associated with them for the Neato to perform.<br><br>
+
 								<span class="image main"><img src="images/3_signs_in_a_row.gif" alt="" style="width:800px"/></span>
 								<h1>System Architecture</h1>
-								Our SignDetection class includes instances of 3 other classes, RobotMotion, ImageExtractor, and PredictCNN. PredictCNN relies on a pre-trained and saved
-								convultional neural net. Within SignDetection, ImageExtractor find a region of interest (ROI), PredictCNN classifies it, and RobotMotion controls the behavior of a simulated neato.
-								For the simulated neato to have a place to navigate and bring in camera feed from, we designed a Gazebo world with a
-								handful of road signs for the neato to react to.
+								Our SignDetection class includes instances of 3 other classes: RobotMotion, ImageExtractor, and PredictCNN.
+								PredictCNN relies on a pre-trained and saved convulutional neural net. Within SignDetection, ImageExtractor
+								finds a region of interest (ROI), PredictCNN classifies it, and RobotMotion controls the behavior of the simulated Neato.
+								We designed a Gazebo world with a handful of road signs for the Neato to react to based on what
+								signs appear in its camera feed.
 
 								<span class="image main"><img src="images/sign_detection_diagram.png" alt="" style="width:700px"/></span>
 								<h2> Gazebo World</h2>
+								The Gazebo world consists of 3 types of sign models with images taken directly from the dataset. We had never
+								created custom Gazebo models before, and our initial plan was to create models from scratch in Solidworks.
+								We successfully created a mesh in Solidworks and exported it as an SDF file, but it proved to be more
+								complicated than expected to apply a texture from scratch to put a road sign on the mesh. For the sake of
+								this project scope, we pivoted to using the built in Stop Sign model by editing the model textures in
+								Adobe Illustrator. Here are the models we ultimately used:<br><br>
+
+								<span class="image main"><img src="images/gazebo_signs.png" alt="" style="width:600px"/></span>
+
 								<h2> Image Extraction</h2>
-								To identify the region of the video that is most likely to
+								To identify the region of the video that is most likely to contain a sign, we followed the following steps:<br><br>
 
 								<ol>
-							  <li>Crop the video to elimate the bottom 3rd of the camera feed.
-								<li> Convert it to grayscale.
-							  <li> Apply an adaptive filter using OpenCVs <code>adaptiveThreshold</code> to generate a binary feed.
-							  <li> Generate contours from the binary feed.
-								<li>From each contour object, approximate the area and number of vertices.
-								<li> Filter out contours with areas > 20000 and < 1000. This elimates noise from tiny contours and also ignores any contours that are the full perimeter of the camera feed.
-								<li> For the remainging contours, any shapes with more than 4 vertices is considered a potential sign.
-								<li>Finally, the largest remaining contour is considered the ROI (region of interest) for that frame in the video feed and is saved.
+							  <li>Crop the video to elimate the bottom 3rd of the camera feed
+								<li> Convert it to grayscale
+							  <li> Apply an adaptive filter using OpenCVs <code>adaptiveThreshold</code> to generate a binary feed
+							  <li> Generate contours from the binary feed
+								<li>From each contour object, approximate the area and number of vertices
+								<li> Filter out contours with areas > 20000 and < 1000. This elimates noise from tiny contours and also ignores any contours that are the full perimeter of the camera feed
+								<li> For the remainging contours, any shapes with more than 4 vertices is considered a potential sign
+								<li>Finally, the largest remaining contour is considered the ROI (region of interest) for that frame in the video feed and is saved
 								</ol>
 
-								As the simulated camera comes, a binary threshold and contour feed are generated. From
-								each frame, a boudning box is placed around the ROI where a sign is suspected of being.
+								A binary threshold and contour feed are generated from the camera feed. From
+								each frame, a bounding box is placed around the region most likely to contain a sign (the ROI).<br><br>
 								<br>
 								<br>
 								<span class="image main"><img src="images/threshold_contours.gif" alt="" style="width:600px"/></span>
 								<br>
 								<br>
-								<h2> Sign Classifier (CNN)</h2>
-								To classify the region of interest image found duing image extraction, we built off of a simple convolutional neural net that we built during the prior
-								<a href="https://github.com/vscheyer/computer_vision">computer vision project</a>.
+								<h2> Sign Classification</h2>
+								To classify the region of interest image found duing image extraction, we built off of a simple
+								convolutional neural net that we built during the prior
+								<a href="https://github.com/vscheyer/computer_vision">computer vision project</a>
 								<br>
 								<br>
 								Our classifier was trained on the publicly available portion of the Chinese Traffic Sign Recognition database [1]
 								<br>
 								<br>
+
+								<h2>Robot Motion</h2>
+								For each type of sign, the Neato responds accordingly. The stop sign causes the Neato to pause for 2 seconds
+								before it resumes driving forward. Each turn sign causes the Neato to pivot 90 degrees in the indicated direction.<br><br>
+
+								One of the challenges associated with reacting to video stream object classification is the way that multiple
+								frames in the video may contain a sign that triggers the same behavior. For example, if the algorithm is processing
+								one frame every second as the Neato approaches a stop sign, we do not want the Neato to respond repeatedly to every
+								frame where a stop sign is identified. To account for this, we added several constraints so that the Neato only responds
+								under specific conditions:<br><br>
+
+								<ol>
+									<li>The sign must be within 50 pixels of the top of the video stream, which means the Neato is quite close to the sign</li>
+									<li>A new_sign flag must be tripped indicating that the sign in the video stream has not been acted on already.
+									Right now this means the Neato can only respond to multiple signs in a row if they are different. The new_sign
+									flag could be combined with the "location in frame" constraint above to make this possible in the future.</li>
+									<li>A sign must be classified with >99% confidence before the Neato acts on it, otherwise sometimes unwanted
+									objects in the image accidentally trip the Neato to respond.</li>
+								</ol>
+
+
+								We tackled this challenge separately from the actual image classification portion
+								of the program since we wanted to use our CNN from the Computer Vision project, but there are other more integrated
+								approaches that take into account the rate of change and movement of objects between images during the object classification
+								phase.
+								<br><br>
+								===========================
+								<br><br>
+
+
 								[1] https://www.kaggle.com/dmitryyemelyanov/chinese-traffic-signs
 								The dataset is a converted version of publicly available Chinese Traffic Sign Recognition Database. This work is supported by National Nature Science Foundation of China(NSFC) Grant 61271306
 								Credits:
