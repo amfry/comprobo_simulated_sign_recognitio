@@ -59,11 +59,35 @@
 								</ul>
 								<span class="image main"><img src="images/3_signs_in_a_row.gif" alt="" style="width:800px"/></span>
 								<h1>System Architecture</h1>
-									<span class="image main"><img src="images/sign_detection_diagram.png" alt="" style="width:700px"/></span>
+								Our SignDetection class includes instances of 3 other classes, RobotMotion, ImageExtractor, and PredictCNN. PredictCNN relies on a pre-trained and saved
+								convultional neural net. Within SignDetection, ImageExtractor find a region of interest (ROI), PredictCNN classifies it, and RobotMotion controls the behavior of a simulated neato.
+								For the simulated neato to have a place to navigate and bring in camera feed from, we designed a Gazebo world with a
+								handful of road signs for the neato to react to.
+
+								<span class="image main"><img src="images/sign_detection_diagram.png" alt="" style="width:700px"/></span>
 								<h2> Gazebo World</h2>
 								<h2> Image Extraction</h2>
-									<span class="image main"><img src="images/threshold_contours.gif" alt="" style="width:450px"/></span>
-								<h2> Sign Classifier</h2>
+								To identify the region of the video that is most likely to
+
+								<ol>
+							  <li>Crop the video to elimate the bottom 3rd of the camera feed.
+								<li> Convert it to grayscale.
+							  <li> Apply an adaptive filter using OpenCVs <code>adaptiveThreshold</code> to generate a binary feed.
+							  <li> Generate contours from the binary feed.
+								<li>From each contour object, approximate the area and number of vertices.
+								<li> Filter out contours with areas > 20000 and < 1000. This elimates noise from tiny contours and also ignores any contours that are the full perimeter of the camera feed.
+								<li> For the remainging contours, any shapes with more than 4 vertices is considered a potential sign.
+								<li>Finally, the largest remaining contour is considered the ROI (region of interest) for that frame in the video feed and is saved.
+								</ol>
+
+								As the simulated camera comes, a binary threshold and contour feed are generated. From
+								each frame, a boudning box is placed around the ROI where a sign is suspected of being.
+								<br>
+								<br>
+								<span class="image main"><img src="images/threshold_contours.gif" alt="" style="width:600px"/></span>
+								<br>
+								<br>
+								<h2> Sign Classifier (CNN)</h2>
 								To classify the region of interest image found duing image extraction, we built off of a simple convolutional neural net that we built during the prior
 								<a href="https://github.com/vscheyer/computer_vision">computer vision project</a>.
 								<br>
